@@ -1,12 +1,75 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
+import { useEffect, useState } from 'react';
+import { Image, StyleSheet, Platform, FlatList, TouchableOpacity } from 'react-native';
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { storage, fire } from "../../firebaseConfig";
+import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import * as ImagePicker from "expo-image-picker";
 
 export default function HomeScreen() {
+
+  const [img, setImg] = useState("");
+  const [file, setFile] = useState("");
+
+  useEffect(() => {
+      const unsubscribe = onSnapshot(collection(fire, "universo"), (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+              if (change.type === "added") {
+                  setFile((prevFiles) => [...prevFiles, change.doc.data()]);
+              }
+          });
+      });
+      return () => unsubscribe();
+  }, []);
+
+  async function uploadImage(uri, fileType) {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, "");
+      const uploadTask = uploadBytesResumable(storageRef, blob);
+
+      uploadTask.on(
+          "state_changed",
+          () => {
+              getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+                  await saveRecord(fileType, downloadURL, new Date().toISOString());
+                  setImg("");
+              });
+          }
+      )
+  }
+
+    async function saveRecord(fileType, url, createdAt) {
+        try {
+            const docRef = await addDoc(collection, (fire, "universo"), {
+                fileType,
+                url,
+                createdAt,
+            })
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+  async function pickImage() {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImg(result.assets[0].uri);
+      await uploadImage(result.assets[0].uri, "image");
+    }
+  };
+
   return (
+    
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
@@ -16,12 +79,29 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title"> Minhas Fotos Lindas!</ThemedText>
         <HelloWave />
+
+        <FlatList
+        data={file}
+        keyExtractor={(item) => item.url}
+        renderItem={({ item }) => {
+          if (item.fileType === "img") {
+            return (
+              <Image
+                source={{ uri: item.url }}
+                style={styles.fotos}
+              />
+            )
+          }
+        }}
+        numColumns={2}
+      />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
+
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
           Press{' '}
           <ThemedText type="defaultSemiBold">
@@ -46,6 +126,9 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+      <TouchableOpacity onPress={pickImage} style={styles.imgpick}>
+        <ThemedText> Imagens </ThemedText>
+      </TouchableOpacity>
     </ParallaxScrollView>
   );
 }
@@ -67,4 +150,14 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+  fotos:{
+      width: 200,
+      height: 200
+  },
+  imgpick:{
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 20
+  }
 });
