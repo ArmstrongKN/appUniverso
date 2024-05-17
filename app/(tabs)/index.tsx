@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Platform, FlatList, TouchableOpacity } from 'react-native';
-import { HelloWave } from '@/components/HelloWave';
+import { Image, StyleSheet, Platform, FlatList, TouchableOpacity  } from 'react-native';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -11,126 +10,111 @@ import * as ImagePicker from "expo-image-picker";
 
 export default function HomeScreen() {
 
-  const [img, setImg] = useState("");
-  const [file, setFile] = useState("");
+  const [image, setImage] = useState([]);
+    const [files, setFiles] = useState([]);
 
-  useEffect(() => {
-      const unsubscribe = onSnapshot(collection(fire, "universo"), (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-              if (change.type === "added") {
-                  setFile((prevFiles) => [...prevFiles, change.doc.data()]);
-              }
-          });
-      });
-      return () => unsubscribe();
-  }, []);
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(fire, "files"), (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    setFiles((prevFiles) => [...prevFiles, change.doc.data()]);
+                }
+            });
+        });
 
-  async function uploadImage(uri, fileType) {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const storageRef = ref(storage, "");
-      const uploadTask = uploadBytesResumable(storageRef, blob);
+        return () => unsubscribe();
+    }, []);
 
-      uploadTask.on(
-          "state_changed",
-          () => {
-              getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-                  await saveRecord(fileType, downloadURL, new Date().toISOString());
-                  setImg("");
-              });
-          }
-      )
-  }
+    async function uploadImage(uri, fileType) {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const storageRef = ref(storage, new Date().toISOString());
+        const uploadTask = uploadBytesResumable(storageRef, blob);
+
+        uploadTask.on(
+            "state_changed",
+            null,
+            (error) => {
+                console.error(error);
+            },
+            async () => {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                await saveRecord(fileType, downloadURL, new Date().toISOString());
+                setImage("");
+            }
+        );
+    }
 
     async function saveRecord(fileType, url, createdAt) {
         try {
-            const docRef = await addDoc(collection, (fire, "universo"), {
+            await addDoc(collection(fire, "files"), {
                 fileType,
                 url,
                 createdAt,
-            })
+            });
         } catch (e) {
             console.log(e);
         }
     }
 
-  async function pickImage() {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    async function pickImage() {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
 
-    if (!result.canceled) {
-      setImg(result.assets[0].uri);
-      await uploadImage(result.assets[0].uri, "image");
+        if (!result.canceled) {
+            const { uri } = result.assets[0];
+            setImage(uri);
+            await uploadImage(uri, "image");
+        }
     }
-  };
 
-  return (
-    
-    <ParallaxScrollView
+    return (
+
+      <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
+          source={require('@/assets/images/retratos/glx.png')}
           style={styles.reactLogo}
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title"> Minhas Fotos Lindas!</ThemedText>
-        <HelloWave />
 
-        <FlatList
-        data={file}
-        keyExtractor={(item) => item.url}
-        renderItem={({ item }) => {
-          if (item.fileType === "img") {
-            return (
-              <Image
-                source={{ uri: item.url }}
-                style={styles.fotos}
-              />
-            )
-          }
-        }}
-        numColumns={2}
-      />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
+        <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 8, height: '100%', width: '100%' }}>
 
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-      <TouchableOpacity onPress={pickImage} style={styles.imgpick}>
-        <ThemedText> Imagens </ThemedText>
-      </TouchableOpacity>
-    </ParallaxScrollView>
-  );
+        <ThemedText type="title"> Bem-Vindo </ThemedText>
+                <ThemedText type="defaultSemiBold" style={{ textAlign: 'center' }}>
+                    Arquivos Enviados
+                </ThemedText>
+                <FlatList
+                    data={files}
+                    keyExtractor={(item) => item.url}
+                    renderItem={({ item }) => {
+                        if (item.fileType === "image") {
+                            return (
+                                <Image
+                                    source={{ uri: item.url }}
+                                    style={{ width: 150, height: 150, borderRadius: 20, margin: 5 }}
+                                />
+                            );
+                        }
+                        return null;
+                    }}
+                    numColumns={1}
+                />
+                <TouchableOpacity
+                    onPress={pickImage}
+                    style={{ justifyContent: 'center', alignItems: 'center', borderRadius: 20, padding: 50, backgroundColor: 'lightblue', marginTop: 10 }}
+                >
+                    <ThemedText>Selecionar Imagens</ThemedText>
+                </TouchableOpacity>
+        </ThemedView>
+
+        </ParallaxScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -144,8 +128,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reactLogo: {
-    height: 178,
-    width: 290,
+    height: 250,
+    width: 415,
     bottom: 0,
     left: 0,
     position: 'absolute',
