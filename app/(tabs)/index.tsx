@@ -1,37 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, Image, Alert, StyleSheet, GestureResponderEvent } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage';
-import { fire, storage } from '../../firebaseConfig'; // Certifique-se de importar sua configuração do Firebase
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { fire, storage } from '../../firebaseConfig';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
+interface File {
+    id: string;
+    fileType: string;
+    url: string;
+    createdAt: string;
+    updatedAt?: string;
+}
 
 export default function HomeScreen() {
-    const [image, setImage] = useState("");
-    const [files, setFiles] = useState([]);
+    const [image, setImage] = useState<string>("");
+    const [files, setFiles] = useState<File[]>([]);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(fire, "universo"), (snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "added") {
-                    setFiles((prevFiles) => [...prevFiles, { id: change.doc.id, ...change.doc.data() }]);
-                }
-                if (change.type === "modified") {
-                    setFiles((prevFiles) =>
-                        prevFiles.map((file) =>
-                            file.id === change.doc.id ? { id: change.doc.id, ...change.doc.data() } : file
-                        )
-                    );
-                }
-                if (change.type === "removed") {
-                    setFiles((prevFiles) => prevFiles.filter((file) => file.id !== change.doc.id));
+                    setFiles((prevFiles) => [...prevFiles, { id: change.doc.id, ...change.doc.data() } as File]);
                 }
             });
         });
         return () => unsubscribe();
     }, []);
 
-    async function uploadImage(uri, fileType, id = null) {
+    async function uploadImage(uri: string, fileType: string, id: string | null = null): Promise<void> {
         const response = await fetch(uri);
         const blob = await response.blob();
         const storageRef = ref(storage, new Date().toISOString());
@@ -55,7 +54,7 @@ export default function HomeScreen() {
         );
     }
 
-    async function saveRecord(fileType, url, createdAt) {
+    async function saveRecord(fileType: string, url: string, createdAt: string): Promise<void> {
         try {
             await addDoc(collection(fire, "universo"), {
                 fileType,
@@ -67,7 +66,7 @@ export default function HomeScreen() {
         }
     }
 
-    async function updateRecord(fileType, url, id) {
+    async function updateRecord(fileType: string, url: string, id: string): Promise<void> {
         try {
             await updateDoc(doc(fire, "universo", id), {
                 fileType,
@@ -79,17 +78,7 @@ export default function HomeScreen() {
         }
     }
 
-    async function deleteRecord(id, url) {
-        try {
-            await deleteDoc(doc(fire, "universo", id));
-            const storageRef = ref(storage, url);
-            await deleteObject(storageRef);
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    async function pickImage(updateId = null) {
+    async function pickImage(updateId: string | null = null): Promise<void> {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
@@ -97,95 +86,70 @@ export default function HomeScreen() {
             quality: 1,
         });
         console.log(result);
-        if (!result.canceled) {
+        if (!result.canceled && result.assets) {
             setImage(result.assets[0].uri);
             await uploadImage(result.assets[0].uri, "img", updateId);
         }
     }
 
-    function confirmDelete(id, url) {
-        Alert.alert(
-            "Confirmação",
-            "Tem certeza que deseja deletar esta imagem?",
-            [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Deletar", onPress: () => deleteRecord(id, url) }
-            ]
-        );
-    }
+    const handlePickImage = (event: GestureResponderEvent) => {
+        pickImage();
+    };
 
     return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-            headerImage={
-                <Image
-                    source={require('@/assets/images/retratos/glx.png')}
-                    style={styles.reactLogo}
-                />
-            }>
 
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 8, height: '100%', width: '100%' }}>
-                <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Bem-Vindo</Text>
-                <Text style={{ textAlign: 'center', fontSize: 16 }}>Arquivos Enviados</Text>
-            </View>
-            <FlatList
-                data={files}
-                keyExtractor={(item) => item.url}
-                renderItem={({ item }) => {
-                    if (item.fileType === "img") {
-                        return (
-                            <View>
-                                <Image
-                                    source={{ uri: item.url }}
-                                    style={{ width: 150, height: 150, borderRadius: 20, margin: 5 }}
-                                />
-                                <TouchableOpacity onPress={() => pickImage(item.id)}>
-                                    <Text>Atualizar Imagem</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => confirmDelete(item.id, item.url)}>
-                                    <Text>Deletar Imagem</Text>
-                                </TouchableOpacity>
-                            </View>
-                        );
-                    }
-                }}
-                numColumns={2}
-            />
-            <TouchableOpacity
-                onPress={pickImage}
-                style={{ justifyContent: 'center', alignItems: 'center', borderRadius: 20, padding: 50, backgroundColor: 'lightblue', marginTop: 10 }}
-            >
-                <Text>Subir Imagens</Text>
+        <SafeAreaView>
+
+            <ThemedView>
+                <ThemedText style={styles.texto}>Bem-Vindo</ThemedText>
+                <ThemedText style={styles.texto}>Arquivos Enviados</ThemedText>
+            </ThemedView>
+
+            <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
+                <ThemedText style={styles.texto}>Subir Imagens</ThemedText>
             </TouchableOpacity>
-        </ParallaxScrollView>
+
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    titleContainer: {
-        flexDirection: 'row',
+    texto: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    headerContainer: {
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        padding: 8,
+        height: '100%',
+        width: '100%'
     },
-    stepContainer: {
-        gap: 8,
-        marginBottom: 8,
+    headerText: {
+        fontSize: 24,
+        fontWeight: 'bold'
     },
-    reactLogo: {
-        height: 250,
-        width: 415,
-        bottom: 0,
-        left: 0,
-        position: 'absolute',
+    subHeaderText: {
+        textAlign: 'center',
+        fontSize: 16
     },
-    fotos: {
-        width: 200,
-        height: 200
+    itemContainer: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        margin: 5
     },
-    imgpick: {
-        position: "absolute",
-        justifyContent: "center",
-        alignItems: "center",
+    image: {
+        width: 150,
+        height: 150,
         borderRadius: 20
+    },
+    uploadButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 20,
+        padding: 50,
+        backgroundColor: 'lightblue',
+        marginTop: 10
     }
 });
