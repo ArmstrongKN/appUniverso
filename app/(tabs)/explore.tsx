@@ -134,15 +134,6 @@ export default function HomeScreen() {
         </View>
     );
 
-    const renderFooter = () => (
-        <TouchableOpacity
-            onPress={handlePickImage}
-            style={styles.uploadButton}
-        >
-            <Text>Subir Imagens</Text>
-        </TouchableOpacity>
-    );
-
     const renderItem = ({ item }: { item: File }) => {
         if (item.fileType === "img") {
             return (

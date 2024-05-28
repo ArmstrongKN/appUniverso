@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, Image, Alert, StyleSheet, GestureResponderEvent } from 'react-native';
+import { SafeAreaView, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage';
+import { collection, onSnapshot, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { fire, storage } from '../../firebaseConfig';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 interface File {
     id: string;
+    nome: string;
+    numeroLuas: string;
     fileType: string;
     url: string;
     createdAt: string;
@@ -16,6 +18,9 @@ interface File {
 }
 
 export default function HomeScreen() {
+
+    const [nome, setNome] = useState<string>("");
+    const [numeroLuas, setNumeroLuas] = useState<string>("");
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
 
@@ -30,7 +35,7 @@ export default function HomeScreen() {
         return () => unsubscribe();
     }, []);
 
-    async function uploadImage(uri: string, fileType: string, id: string | null = null): Promise<void> {
+    async function uploadImage(uri: string, fileType: string, nome: string, id: string | null = null): Promise<void> {
         const response = await fetch(uri);
         const blob = await response.blob();
         const storageRef = ref(storage, new Date().toISOString());
@@ -44,34 +49,22 @@ export default function HomeScreen() {
             },
             async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                if (id) {
-                    await updateRecord(fileType, downloadURL, id);
-                } else {
-                    await saveRecord(fileType, downloadURL, new Date().toISOString());
+                if (!id) {
+                    await saveRecord(nome, fileType, downloadURL, new Date().toISOString());
                 }
                 setImage("");
+                setNome("");
             }
         );
     }
 
-    async function saveRecord(fileType: string, url: string, createdAt: string): Promise<void> {
+    async function saveRecord(nome: string, fileType: string, url: string, createdAt: string): Promise<void> {
         try {
             await addDoc(collection(fire, "universo"), {
+                nome,
                 fileType,
                 url,
-                createdAt,
-            });
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    async function updateRecord(fileType: string, url: string, id: string): Promise<void> {
-        try {
-            await updateDoc(doc(fire, "universo", id), {
-                fileType,
-                url,
-                updatedAt: new Date().toISOString(),
+                createdAt
             });
         } catch (e) {
             console.log(e);
@@ -83,12 +76,12 @@ export default function HomeScreen() {
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
             aspect: [4, 3],
-            quality: 1,
+            quality: 1
         });
         console.log(result);
         if (!result.canceled && result.assets) {
             setImage(result.assets[0].uri);
-            await uploadImage(result.assets[0].uri, "img", updateId);
+            await uploadImage(result.assets[0].uri, "img", nome, updateId);
         }
     }
 
@@ -97,18 +90,20 @@ export default function HomeScreen() {
     };
 
     return (
-
         <SafeAreaView>
-
             <ThemedView>
                 <ThemedText style={styles.texto}>Bem-Vindo</ThemedText>
                 <ThemedText style={styles.texto}>Arquivos Enviados</ThemedText>
             </ThemedView>
 
+            <ThemedView>
+                <TextInput placeholder="Nomeie o planeta" value={nome} onChangeText={setNome}/>
+                <TextInput placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
+            </ThemedView>
+
             <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
                 <ThemedText style={styles.texto}>Subir Imagens</ThemedText>
             </TouchableOpacity>
-
         </SafeAreaView>
     );
 }
@@ -151,5 +146,12 @@ const styles = StyleSheet.create({
         padding: 50,
         backgroundColor: 'lightblue',
         marginTop: 10
-    }
+    },
+    input: {
+        flex: 1,
+        paddingLeft: 10,
+        fontSize: 16,
+        height: 40,
+        fontFamily: 'Montserrat_400Regular'
+    },
 });
