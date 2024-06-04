@@ -93,16 +93,16 @@ export default function HomeScreen() {
         <SafeAreaView>
             <ThemedView>
                 <ThemedText style={styles.texto}>Bem-Vindo</ThemedText>
-                <ThemedText style={styles.texto}>Arquivos Enviados</ThemedText>
+                <ThemedText style={styles.texto2}>Arquivos Enviados</ThemedText>
             </ThemedView>
 
             <ThemedView>
-                <TextInput placeholder="Nomeie o planeta" value={nome} onChangeText={setNome}/>
-                <TextInput placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
+                <TextInput style={styles.nome} placeholder="Nomeie o planeta" value={nome} onChangeText={setNome}/>
+                <TextInput style={styles.nome2}placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
             </ThemedView>
 
             <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
-                <ThemedText style={styles.texto}>Subir Imagens</ThemedText>
+                <ThemedText style={styles.texto3}>Subir Imagens</ThemedText>
             </TouchableOpacity>
         </SafeAreaView>
     );
@@ -112,18 +112,60 @@ const styles = StyleSheet.create({
     texto: {
         fontSize: 24,
         fontWeight: 'bold',
+        paddingTop: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: ' #132639',
+        marginLeft: 132
+        
     },
+    texto2: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 10,
+        marginLeft: 95
+        
+    },
+    texto3: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        paddingTop: 10,
+        justifyContent: 'center',
+    },
+
+    nome:{
+        fontSize: 16,
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 20,
+        marginLeft: 135
+    },
+
+    nome2:{
+        fontSize: 16,
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 155
+    },
+
     headerContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 8,
         height: '100%',
-        width: '100%'
+        width: '100%',
+       
+       
     },
     headerText: {
         fontSize: 24,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        
     },
     subHeaderText: {
         textAlign: 'center',
@@ -132,18 +174,18 @@ const styles = StyleSheet.create({
     itemContainer: {
         flexDirection: 'column',
         alignItems: 'center',
-        margin: 5
+        margin: 5,
     },
     image: {
         width: 150,
         height: 150,
-        borderRadius: 20
+        borderRadius: 20,
     },
     uploadButton: {
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 20,
-        padding: 50,
+        padding: 40,
         backgroundColor: 'lightblue',
         marginTop: 10
     },
@@ -152,6 +194,8 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         fontSize: 16,
         height: 40,
-        fontFamily: 'Montserrat_400Regular'
+        fontFamily: 'Montserrat_400Regular',
+        
     },
+
 });

@@ -8,15 +8,16 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useNavigation } from "@react-navigation/native";
 
-interface File {
-    id: string;
-    fileType: string;
-    url: string;
-    createdAt: string;
-    updatedAt?: string;
-}
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-export default function HomeScreen({}) {
+type RootStackParamList = {
+  Home: undefined;
+  Details: undefined;
+};
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Details'>;
+
+const alterarPlaneta = ({}) => {
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
     const navigation = useNavigation();
@@ -147,9 +148,6 @@ export default function HomeScreen({}) {
                     <TouchableOpacity onPress={() => pickImage(item.id)}>
                         <Text>Atualizar Imagem</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate("alterarPlaneta")}>
-                        <Text>Nova atualização</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => confirmDelete(item.id, item.url)}>
                         <Text>Deletar Imagem</Text>
                     </TouchableOpacity>
@@ -210,3 +208,5 @@ const styles = StyleSheet.create({
         marginTop: 10
     }
 });
+
+export default alterarPlaneta;
