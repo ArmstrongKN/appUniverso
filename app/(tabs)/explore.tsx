@@ -17,6 +17,7 @@ interface File {
 }
 
 export default function HomeScreen({}) {
+    
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
     const navigation = useNavigation();
@@ -147,7 +148,7 @@ export default function HomeScreen({}) {
                     <TouchableOpacity onPress={() => pickImage(item.id)}>
                         <Text>Atualizar Imagem</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate("alterarPlaneta")}>
+                    <TouchableOpacity onPress={() => navigation.navigate("AlterarPlaneta")}>
                         <Text>Nova atualização</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => confirmDelete(item.id, item.url)}>

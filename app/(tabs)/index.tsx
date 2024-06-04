@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { collection, onSnapshot, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { fire, storage } from '../../firebaseConfig';
 import { ThemedText } from '@/components/ThemedText';
@@ -10,7 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 interface File {
     id: string;
     nome: string;
-    numeroLuas: string;
+    numeroLuas: number;
     fileType: string;
     url: string;
     createdAt: string;
@@ -20,7 +20,7 @@ interface File {
 export default function HomeScreen() {
 
     const [nome, setNome] = useState<string>("");
-    const [numeroLuas, setNumeroLuas] = useState<string>("");
+    const [numeroLuas, setNumeroLuas] = useState<number>(0);
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
 
@@ -35,7 +35,7 @@ export default function HomeScreen() {
         return () => unsubscribe();
     }, []);
 
-    async function uploadImage(uri: string, fileType: string, nome: string, id: string | null = null): Promise<void> {
+    async function uploadImage(uri: string, fileType: string, nome: string, numeroLuas: number, id: string | null = null): Promise<void> {
         const response = await fetch(uri);
         const blob = await response.blob();
         const storageRef = ref(storage, new Date().toISOString());
@@ -50,18 +50,20 @@ export default function HomeScreen() {
             async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 if (!id) {
-                    await saveRecord(nome, fileType, downloadURL, new Date().toISOString());
+                    await saveRecord(nome, numeroLuas, fileType, downloadURL, new Date().toISOString());
                 }
                 setImage("");
                 setNome("");
+                setNumeroLuas(0);
             }
         );
     }
 
-    async function saveRecord(nome: string, fileType: string, url: string, createdAt: string): Promise<void> {
+    async function saveRecord(nome: string, numeroLuas: number, fileType: string, url: string, createdAt: string): Promise<void> {
         try {
             await addDoc(collection(fire, "universo"), {
                 nome,
+                numeroLuas,
                 fileType,
                 url,
                 createdAt
@@ -81,7 +83,7 @@ export default function HomeScreen() {
         console.log(result);
         if (!result.canceled && result.assets) {
             setImage(result.assets[0].uri);
-            await uploadImage(result.assets[0].uri, "img", nome, updateId);
+            await uploadImage(result.assets[0].uri, "img", nome, numeroLuas, updateId);
         }
     }
 

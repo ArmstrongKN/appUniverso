@@ -10,14 +10,20 @@ import { useNavigation } from "@react-navigation/native";
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-type RootStackParamList = {
-  Home: undefined;
-  Details: undefined;
-};
+interface File {
+    id: string;
+    nome: string;
+    numeroLuas: number;
+    fileType: string;
+    url: string;
+    createdAt: string;
+    updatedAt?: string;
+}
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Details'>;
+const AlterarPlaneta = ({}) => {
 
-const alterarPlaneta = ({}) => {
+    const [nome, setNome] = useState<string>("");
+    const [numeroLuas, setNumeroLuas] = useState<number>(0);
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
     const navigation = useNavigation();
@@ -43,7 +49,7 @@ const alterarPlaneta = ({}) => {
         return () => unsubscribe();
     }, []);
 
-    async function uploadImage(uri: string, fileType: string, id: string | null = null): Promise<void> {
+    async function uploadImage(nome: string, numeroLuas: number, uri: string, fileType: string, id: string | null = null): Promise<void> {
         const response = await fetch(uri);
         const blob = await response.blob();
         const storageRef = ref(storage, new Date().toISOString());
@@ -58,18 +64,20 @@ const alterarPlaneta = ({}) => {
             async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 if (id) {
-                    await updateRecord(fileType, downloadURL, id);
+                    await updateRecord(nome, numeroLuas, fileType, downloadURL, id);
                 } else {
-                    await saveRecord(fileType, downloadURL, new Date().toISOString());
+                    await saveRecord(nome, numeroLuas, fileType, downloadURL, new Date().toISOString());
                 }
                 setImage("");
             }
         );
     }
 
-    async function saveRecord(fileType: string, url: string, createdAt: string): Promise<void> {
+    async function saveRecord(nome: string, numeroLuas: number, fileType: string, url: string, createdAt: string): Promise<void> {
         try {
             await addDoc(collection(fire, "universo"), {
+                nome,
+                numeroLuas,
                 fileType,
                 url,
                 createdAt,
@@ -79,23 +87,15 @@ const alterarPlaneta = ({}) => {
         }
     }
 
-    async function updateRecord(fileType: string, url: string, id: string): Promise<void> {
+    async function updateRecord(nome: string, numeroLuas: number, fileType: string, url: string, id: string): Promise<void> {
         try {
             await updateDoc(doc(fire, "universo", id), {
+                nome,
+                numeroLuas,
                 fileType,
                 url,
                 updatedAt: new Date().toISOString(),
             });
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    async function deleteRecord(id: string, url: string): Promise<void> {
-        try {
-            await deleteDoc(doc(fire, "universo", id));
-            const storageRef = ref(storage, url);
-            await deleteObject(storageRef);
         } catch (e) {
             console.log(e);
         }
@@ -111,19 +111,8 @@ const alterarPlaneta = ({}) => {
         console.log(result);
         if (!result.canceled && result.assets) {
             setImage(result.assets[0].uri);
-            await uploadImage(result.assets[0].uri, "img", updateId);
+            await uploadImage(result.assets[0].uri, "img", nome, numeroLuas, updateId);
         }
-    }
-
-    function confirmDelete(id: string, url: string): void {
-        Alert.alert(
-            "Confirmação",
-            "Tem certeza que deseja deletar esta imagem?",
-            [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Deletar", onPress: () => deleteRecord(id, url) }
-            ]
-        );
     }
 
     const handlePickImage = (event: GestureResponderEvent) => {
@@ -145,11 +134,14 @@ const alterarPlaneta = ({}) => {
                         source={{ uri: item.url }}
                         style={styles.image}
                     />
+
+                    {/* <ThemedView>
+                        <TextInput style={styles.nome} placeholder="Nomeie o planeta" value={nome} onChangeText={setNome}/>
+                        <TextInput style={styles.nome2}placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
+                    </ThemedView> */}
+                    
                     <TouchableOpacity onPress={() => pickImage(item.id)}>
                         <Text>Atualizar Imagem</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => confirmDelete(item.id, item.url)}>
-                        <Text>Deletar Imagem</Text>
                     </TouchableOpacity>
                 </ThemedView>
             );
@@ -181,6 +173,7 @@ const styles = StyleSheet.create({
         height: '100%',
         width: '100%'
     },
+    
     headerText: {
         fontSize: 24,
         fontWeight: 'bold'
@@ -193,6 +186,21 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         alignItems: 'center',
         margin: 5
+    },
+    nome:{
+        fontSize: 16,
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 20,
+        marginLeft: 135
+    },
+    nome2:{
+        fontSize: 16,
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 155
     },
     image: {
         width: 150,
@@ -209,4 +217,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default alterarPlaneta;
+export default AlterarPlaneta;
