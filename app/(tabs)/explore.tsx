@@ -4,12 +4,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage';
 import { fire, storage } from '../../firebaseConfig';
-import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useNavigation } from "@react-navigation/native";
 
 interface File {
     id: string;
+    nome: string;
+    numeroLuas: string;
     fileType: string;
     url: string;
     createdAt: string;
@@ -17,38 +18,49 @@ interface File {
 }
 
 export default function HomeScreen({}) {
-    
     const [image, setImage] = useState<string>("");
     const [files, setFiles] = useState<File[]>([]);
     const navigation = useNavigation();
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(fire, "universo"), (snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    setFiles((prevFiles) => [...prevFiles, { id: change.doc.id, ...change.doc.data() } as File]);
-                }
-                if (change.type === "modified") {
-                    setFiles((prevFiles) =>
-                        prevFiles.map((file) =>
-                            file.id === change.doc.id ? { id: change.doc.id, ...change.doc.data() } as File : file
-                        )
-                    );
-                }
-                if (change.type === "removed") {
-                    setFiles((prevFiles) => prevFiles.filter((file) => file.id !== change.doc.id));
-                }
+            setFiles((prevFiles) => {
+                const newFiles = [...prevFiles];
+                snapshot.docChanges().forEach((change) => {
+                    const newFile = { id: change.doc.id, ...change.doc.data() } as File;
+                    if (change.type === "added") {
+                        const exists = newFiles.find((file) => file.id === newFile.id);
+                        if (!exists) {
+                            newFiles.push(newFile);
+                        }
+                    }
+                    if (change.type === "modified") {
+                        const index = newFiles.findIndex((file) => file.id === newFile.id);
+                        if (index !== -1) {
+                            newFiles[index] = newFile;
+                        }
+                    }
+                    if (change.type === "removed") {
+                        const index = newFiles.findIndex((file) => file.id === newFile.id);
+                        if (index !== -1) {
+                            newFiles.splice(index, 1);
+                        }
+                    }
+                });
+                return newFiles;
             });
         });
+    
         return () => unsubscribe();
     }, []);
+    
 
-    async function uploadImage(uri: string, fileType: string, id: string | null = null): Promise<void> {
+    async function uploadImage(uri: string, fileType: string, nome: string, numeroLuas: string, id: string | null = null): Promise<void> {
         const response = await fetch(uri);
         const blob = await response.blob();
         const storageRef = ref(storage, new Date().toISOString());
         const uploadTask = uploadBytesResumable(storageRef, blob);
-
+    
         uploadTask.on(
             "state_changed",
             null,
@@ -58,18 +70,20 @@ export default function HomeScreen({}) {
             async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 if (id) {
-                    await updateRecord(fileType, downloadURL, id);
+                    await updateRecord(id, nome, numeroLuas, fileType, downloadURL);
                 } else {
-                    await saveRecord(fileType, downloadURL, new Date().toISOString());
+                    await saveRecord(nome, numeroLuas, fileType, downloadURL, new Date().toISOString());
                 }
                 setImage("");
             }
         );
-    }
+    }    
 
-    async function saveRecord(fileType: string, url: string, createdAt: string): Promise<void> {
+    async function saveRecord(nome: string, numeroLuas: string, fileType: string, url: string, createdAt: string): Promise<void> {
         try {
             await addDoc(collection(fire, "universo"), {
+                nome,
+                numeroLuas,
                 fileType,
                 url,
                 createdAt,
@@ -79,9 +93,11 @@ export default function HomeScreen({}) {
         }
     }
 
-    async function updateRecord(fileType: string, url: string, id: string): Promise<void> {
+    async function updateRecord(id: string, nome: string, numeroLuas: string, fileType: string, url: string): Promise<void> {
         try {
             await updateDoc(doc(fire, "universo", id), {
+                nome,
+                numeroLuas,
                 fileType,
                 url,
                 updatedAt: new Date().toISOString(),
@@ -101,7 +117,7 @@ export default function HomeScreen({}) {
         }
     }
 
-    async function pickImage(updateId: string | null = null): Promise<void> {
+    async function pickImage(nome: string, numeroLuas: string, updateId: string | null = null): Promise<void> {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
@@ -111,9 +127,10 @@ export default function HomeScreen({}) {
         console.log(result);
         if (!result.canceled && result.assets) {
             setImage(result.assets[0].uri);
-            await uploadImage(result.assets[0].uri, "img", updateId);
+            await uploadImage(result.assets[0].uri, "img", nome, numeroLuas, updateId);
         }
     }
+    
 
     function confirmDelete(id: string, url: string): void {
         Alert.alert(
@@ -127,7 +144,7 @@ export default function HomeScreen({}) {
     }
 
     const handlePickImage = (event: GestureResponderEvent) => {
-        pickImage();
+        pickImage("");
     };
 
     const renderHeader = () => (
@@ -145,10 +162,9 @@ export default function HomeScreen({}) {
                         source={{ uri: item.url }}
                         style={styles.image}
                     />
-                    <TouchableOpacity onPress={() => pickImage(item.id)}>
-                        <Text>Atualizar Imagem</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate("AlterarPlaneta")}>
+                    <Text>{item.nome}</Text>
+                    <Text>{item.numeroLuas}</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate("AlterarPlaneta", { id: item.id, nome: item.nome, numeroLuas: item.numeroLuas, url: item.url })}>
                         <Text>Nova atualização</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => confirmDelete(item.id, item.url)}>
@@ -173,8 +189,8 @@ export default function HomeScreen({}) {
 
 const styles = StyleSheet.create({
     texto: {
-      fontSize: 24,
-      fontWeight: 'bold',
+        fontSize: 24,
+        fontWeight: 'bold',
     },
     headerContainer: {
         flex: 1,
