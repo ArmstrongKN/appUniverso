@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput } from 'react-native';
+import { SafeAreaView, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ImageBackground } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { collection, onSnapshot, addDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
@@ -94,13 +94,13 @@ export default function HomeScreen() {
     return (
         <SafeAreaView>
             <ThemedView>
-                <ThemedText style={styles.texto}>Bem-Vindo</ThemedText>
-                <ThemedText style={styles.texto2}>Arquivos Enviados</ThemedText>
+                <ThemedText style={styles.texto}> Universe for you </ThemedText>
+                <ThemedText style={styles.texto2}> Construa seus planetas do sistema </ThemedText>
             </ThemedView>
 
             <ThemedView>
                 <TextInput style={styles.nome} placeholder="Nomeie o planeta" value={nome} onChangeText={setNome}/>
-                <TextInput style={styles.nome2}placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
+                <TextInput style={styles.nome2} placeholder="N° de Luas" value={numeroLuas} onChangeText={setNumeroLuas}/>
             </ThemedView>
 
             <TouchableOpacity style={styles.uploadButton} onPress={handlePickImage}>
